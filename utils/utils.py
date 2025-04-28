@@ -104,7 +104,7 @@ def claim_faucet(proxy=None):
     
         if response.status_code == 200:
             logging.log_success("Request successful!")
-            logging.log_success("Response: "+ response.json())
+            logging.log_success("Response: "+ response.text)
         else:
             logging.log_error(f"Request failed with status code: {response.status_code}")
             logging.log_error("Response: "+ response.text)
