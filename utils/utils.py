@@ -42,22 +42,70 @@ def wait_until_next_interval():
     print()
     logging.log_info("It is now time to run the next transaction!")
 
-
-
 def load_proxies(file_path):
-    with open(file_path, 'r') as file:
-        proxies = [line.strip() for line in file if line.strip()]
-    return proxies
+    """Load proxies from a text file, ignoring empty lines."""
+    try:
+        with open(file_path, 'r') as file:
+            proxies = [line.strip() for line in file if line.strip()]
+        return proxies
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Proxy file '{file_path}' not found.")
+    except Exception as e:
+        raise Exception(f"Error reading proxy file: {str(e)}")
 
-def get_random_proxy():
-    proxy = random.choice(load_proxies('proxy.txt'))
-    user_pass, host_port = proxy.split('@')
-    username, password = user_pass.split(':')
-    host, port = host_port.split(':')
+def parse_proxy(proxy_line):
+    """
+    Parse a proxy line and return a proxy dictionary.
+    Supports formats:
+    - username:password@host:port
+    - host:port
+    - protocol://host:port
+    - protocol://username:password@host:port
+    """
+    # Remove leading/trailing whitespace
+    proxy_line = proxy_line.strip()
+    
+    # Default protocol if none specified
+    protocol = 'socks5'
+    
+    # Check if protocol is specified (e.g., socks5://)
+    if '://' in proxy_line:
+        protocol, proxy_line = proxy_line.split('://', 1)
+    
+    # Split on '@' to check for authentication
+    if '@' in proxy_line:
+        auth, host_port = proxy_line.split('@', 1)
+        username, password = auth.split(':', 1)
+    else:
+        # No authentication
+        username = password = None
+        host_port = proxy_line
+    
+    # Split host and port
+    try:
+        host, port = host_port.rsplit(':', 1)
+        port = int(port)  # Ensure port is an integer
+    except ValueError:
+        raise ValueError(f"Invalid proxy format: {proxy_line}. Expected host:port")
+    
+    # Construct proxy URL
+    if username and password:
+        proxy_url = f"{protocol}://{username}:{password}@{host}:{port}"
+    else:
+        proxy_url = f"{protocol}://{host}:{port}"
+    
     return {
-        'http': f'socks5://{username}:{password}@{host}:{port}',
-        'https': f'socks5://{username}:{password}@{host}:{port}'
+        'http': proxy_url,
+        'https': proxy_url
     }
+
+def get_random_proxy(file_path='proxies.txt'):
+   
+    proxies = load_proxies(file_path)
+    if not proxies:
+        raise ValueError("No proxies found in the file.")
+    proxy_line = random.choice(proxies)
+    return parse_proxy(proxy_line)
 
 
 def solve_captcha():

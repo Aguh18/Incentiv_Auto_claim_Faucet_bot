@@ -1,0 +1,4 @@
+username:password@host:port
+host:port
+protocol://host:port
+protocol://username:password@host:port
